@@ -1,22 +1,25 @@
-import puppeteer from 'puppeteer';
+const express = require('express');
+const { scrapeStockMarketNews } = require('./scraper');
 
-async function scrapeQuotes() {
-  const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
-  await page.goto('https://quotes.toscrape.com/', { waitUntil: 'domcontentloaded' });
+const app = express();
+const port = 3000;
 
-  const quotes = await page.evaluate(() => {
-    return Array.from(document.querySelectorAll('.quote')).map(quote => ({
-      text: quote.querySelector('.text').innerText,
-      author: quote.querySelector('.author').innerText,
-      tags: Array.from(quote.querySelectorAll('.tag')).map(tag => tag.innerText),
-    }));
-  });
+// Route for the root URL
+app.get('/', (req, res) => {
+    res.send('Welcome to the Stock Market News API. Visit /api/stock-news to get the latest news.');
+});
 
-  await browser.close();
-  return quotes;
-}
+// Endpoint to fetch scraped stock market news
+app.get('/api/stock-news', async (req, res) => {
+    try {
+        const news = await scrapeStockMarketNews();
+        res.json(news);
+    } catch (error) {
+        console.error('Error fetching stock market news:', error);
+        res.status(500).json({ error: 'Failed to fetch stock market news' });
+    }
+});
 
-scrapeQuotes()
-  .then(quotes => console.log(quotes))
-  .catch(error => console.error('Error:', error));
+app.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
+});
